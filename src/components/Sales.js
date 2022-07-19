@@ -16,8 +16,10 @@ class Sales extends React.Component {
             stock: 0,
             MDPrice: 0,
             MDPercentage: 0,
-            active: true
-        }
+            active: true,
+            total: 0
+        },
+        cart: [],
 
 
     }
@@ -29,6 +31,43 @@ class Sales extends React.Component {
         this.setState({
             product: product
         });
+    }
+
+    calculadoraTotal = () => {
+        let product = this.state.product;
+        let qty = document.getElementById("qty").value;
+        let discount = document.getElementById("discount").value
+        let isPercentage = discount.indexOf("%") > -1;
+        if (isPercentage) {
+            discount = discount.replace("%", "") / 100;
+            product.total = (product.price * qty) - (product.price * qty * discount);
+        } else {
+            product.total = (product.price * qty) - discount;
+        }
+        this.setState({
+            product: product
+        });
+    }
+
+    addToCart = () => {
+        let product = this.state.product;
+        let errors = "";
+        let qty = document.getElementById("qty").value;
+        let discount = document.getElementById("discount").value;
+        let isPercentage = discount.indexOf("%") > -1;
+        errors += product.name === "" ? "Seleccione un Producto\n" : "";
+        errors += qty === "" ? "Se necesita Cantidad\n " : "";
+        errors += isPercentage && parseInt(discount.replace("%", "")) > product.MDPercentage ? "no puede descontar más del" + product.MDPercentage + "%\n" : "";
+        errors += !isPercentage && parseInt(discount) > product.MDPercentage ? "No puede descontar de $" + product.MDPrice + ".\n" : "";
+        errors += qty > product.stock ? "no puede vender mas de" + product.stock + "productos\n" : "";
+        if (errors.length > 0) {
+            alert(errors);
+        } else {
+            let cartRow = { productId: product.id, productName: product.name, qty: qty, price: product.price, discount: discount, total: product.total };
+            this.setState({
+                cart: [...this.state.cart, cartRow]
+            });
+        }
     }
 
     componentDidMount() {
@@ -61,7 +100,7 @@ class Sales extends React.Component {
                         <div className="container-fluid">
                             <div className="row mb-2">
                                 <div className="col-sm-6">
-                                    <h1>Sala de Ventas</h1>
+                                    <h1>Panel de Ventas</h1>
                                 </div>
                                 <div className="col-sm-6">
                                     <ol className="breadcrumb float-sm-right">
@@ -83,7 +122,7 @@ class Sales extends React.Component {
                                                 <option value="0">--Seleccione</option>
                                                 {clientList.map(client => (
                                                     <option key={client.id} value={client.id}>
-                                                        {client.name}
+                                                        {client.active ? client.name : null}
                                                     </option>
                                                 ))}
 
@@ -107,7 +146,7 @@ class Sales extends React.Component {
                                                 {productList.map(product => (
                                                     <option key={product.id} value={product.id}>
                                                         {product.active ? product.name : function ocultar() {
-                                                            document.getElementById('product.id').style.display = 'none';
+                                                            document.getElementById('product.id').style.display = null;
                                                         }}
 
                                                     </option>
@@ -126,35 +165,35 @@ class Sales extends React.Component {
                                     <div className="col-4">
                                         <div className="form-group">
                                             <label className="label-control" >Stock</label>
-                                            <input className="form-control" type="text" name="stock" id="stock" readOnly="readonly" value={this.state.product.stock} />
+                                            <input className="form-control" type="text" name="stock" id="stock" readOnly={true} value={this.state.product.stock} />
                                         </div>
                                     </div>
                                     <div className="col-4">
                                         <div className="form-group">
                                             <label className="label-control" >Cantidad</label>
-                                            <input className="form-control" type="number" name="qty" id="qty" />
+                                            <input className="form-control" type="number" name="qty" id="qty" onChange={this.calculadoraTotal} />
                                         </div>
                                     </div>
                                     <div className="col-4">
                                         <div className="form-group">
                                             <label className="label-control">Unitario</label>
-                                            <input className="form-control" type="number" name="unitary" id="unitary" readOnly="readonly" value={this.state.product.price} />
+                                            <input className="form-control" type="number" name="unitary" id="unitary" readOnly={true} value={this.state.product.price} />
                                         </div>
                                     </div>
                                     <div className="col-4">
                                         <div className="form-group">
                                             <label className="label-control" >Descuento</label>
-                                            <input className="form-control" type="number" name="discount" id="discount" />
+                                            <input className="form-control" type="number" name="discount" id="discount" onChange={this.calculadoraTotal} />
                                         </div>
                                     </div>
                                     <div className="col-4">
                                         <div className="form-group">
                                             <label className="label-control" >Total</label>
-                                            <input className="form-control" type="number" name="total" id="total" />
+                                            <input className="form-control" type="number" name="total" id="total" readOnly={true} value={this.state.product.total} />
                                         </div>
                                     </div>
                                     <div className="col-12">
-                                        <button className="btn btn-primary btn-block">
+                                        <button className="btn btn-primary btn-block" onClick={this.addToCart}>
                                             <i className="fas fa-cart-plus" />Agregar
                                         </button>
                                     </div>
@@ -171,6 +210,16 @@ class Sales extends React.Component {
                                                     <th>Accion</th>
                                                 </tr>
                                             </thead>
+                                            <tbody>
+                                                {this.state.cart.map(cl => (
+                                                    <tr>
+                                                        <td>{cl.productName}</td>
+                                                        <td>{cl.qty}</td>
+                                                        <td>{cl.total}</td>
+                                                        <td><button className="btn btn-danger"><i className="fas fa-trash"></i></button></td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
                                         </table>
                                     </div>
                                     <div className="col-6">
